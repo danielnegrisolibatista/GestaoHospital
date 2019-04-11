@@ -36,10 +36,6 @@ public class HospitalService {
 	@Autowired
 	private ProductRepository productRepository;
 	
-
-	@Autowired
-	private LocationService locationService;
-
 	@Autowired
 	private LocationService locationService;
 	
@@ -109,7 +105,7 @@ public class HospitalService {
 
 	public Patient checkOut(Hospital hospital, String idPatient){
 		Patient patient = hospital.getPatients().stream()
-				.filter(p -> p.getId().equals(idPatient))
+				.filter(p -> p.getId().trim() == idPatient.trim())
 				.findFirst()
 				.orElseThrow(() -> new ObjectNotFoundException("Paciente não encontrado no hospital!"));
 		hospital.removePacient(patient);
@@ -119,11 +115,11 @@ public class HospitalService {
 		return patientRepository.save(patient);
 	}
 
-	public HospitalDTO findHospitalMaisProximoComVagas(Double lat, Double lon, Double raioMaximo) {
+	public HospitalDTO findHospitalMaisProximoComVagas(String hospitalId, Double lat, Double lon, Double raioMaximo) {
 		List<HospitalDTO> hospitais = locationService.findHospitalNearLocationBy(lat, lon, raioMaximo);
 
 		return hospitais.stream()
-				.filter(h -> h.getAvailableBeds() > 0)
+				.filter(h -> h.getAvailableBeds() > 0 && h.getId() != hospitalId)
 				.findFirst()
 				.orElseThrow(() -> new ResourceNotFoundException("Nenhum hospital próximo com vagas encontrado!"));
 	}
@@ -143,7 +139,7 @@ public class HospitalService {
 				.orElseThrow(() -> new ResourceNotFoundException("Nenhum hospital próximo com este produto encontrado!"));
 	}
 
-	public String transfereProduto(Hospital hospital, String idProduto, Integer quantidade) {
+	public String transfereProduto(Hospital hospital, String idProduto, String quantidade) {
 		//produto existe?
 		Product product = productRepository.findById(idProduto)
 				.orElseThrow(()-> new ObjectNotFoundException("Produto não cadastrado em nenhum hospital!"));
@@ -153,17 +149,17 @@ public class HospitalService {
 				.filter(p -> p.getId().equals(idProduto))
 				.findFirst().get();
 		//verifica se tem quandidade suficiente para transferir
-		if(product.getQuantity() > quantidade + 4){
+		if(product.getQuantity() > Integer.parseInt(quantidade) + 4){
 			//add novo produto no hospital
 			Product novoProduto = new Product();
 			novoProduto.setName(product.getName());
 			novoProduto.setDescription(product.getDescription());
 			novoProduto.setProductType(product.getProductType());
-			novoProduto.setQuantity(quantidade);
+			novoProduto.setQuantity(Integer.parseInt(quantidade));
 			productRepository.save(novoProduto);
 			hospital.setProduct(novoProduto);
 			//diminui quantidade do hospital origem
-			product.diminuiQuantidade(quantidade);
+			product.diminuiQuantidade(Integer.parseInt(quantidade));
 			productRepository.save(product);
 			return "transferencia realizada!";
 		}

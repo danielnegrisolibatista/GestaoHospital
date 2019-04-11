@@ -116,15 +116,18 @@ public class HospitalResource {
 		return leitos;
 	}
 
-	@GetMapping(path = "/maisProximo")
-	public HospitalDTO hospitalMaisProximo(@RequestParam Double lat, @RequestParam Double lon, @RequestParam Double raioMaximo) {
-		return service.findHospitalMaisProximoComVagas(lat, lon, raioMaximo);
-	}
 
 	@PostMapping(path = "{id}/transferencia/{productId}")
-	public String transferenciaProduto(@PathVariable String id, @PathVariable String productId, @RequestBody Integer quantidade) {
+	public String transferenciaProduto(@PathVariable String id, @PathVariable String productId, @RequestBody String quantidade) {
 		Hospital hospital = service.findById(id);
 
 		return service.transfereProduto(hospital, productId, quantidade);
+	}
+	
+	@GetMapping(path = "/{hospital_id}/maisproximo")
+	public HospitalDTO hospitalMaisProximoComVagas(@PathVariable String hospital_id) {
+		Hospital hospital = service.findById(hospital_id);
+		
+		return service.findHospitalMaisProximoComVagas(hospital_id, hospital.getLocation().getLocation().getX(), hospital.getLocation().getLocation().getY(), 100d);
 	}
 }

@@ -27,6 +27,7 @@ import br.com.codenation.hospital.dto.HospitalDTO;
 import br.com.codenation.hospital.dto.LocationDTO;
 import br.com.codenation.hospital.dto.ProductDTO;
 import br.com.codenation.hospital.repository.LocationRepository;
+import br.com.codenation.hospital.resource.exception.ResourceNotFoundException;
 import br.com.codenation.hospital.services.HospitalService;
 import br.com.codenation.hospital.services.LocationService;
 
@@ -52,10 +53,29 @@ public class LocationResource {
 	 }
 	  
 	 @GetMapping(path = "/hospitaisProximos")
-	 public ResponseEntity<List<HospitalDTO>> findHospitalNearHospitalBy(@PathVariable String hospital_id, @RequestParam Double raio) {
+	 public ResponseEntity<List<HospitalDTO>> findHospitalNearHospitalBy(@PathVariable String hospital_id) {
 		try {
-			List<HospitalDTO> locations = locationService.findHospitalNearHospitalBy(hospital_id, raio);
+			List<HospitalDTO> locations = locationService.findHospitalNearHospitalBy(hospital_id, 100D);
 
+			return Optional.ofNullable(locations).map(productReponse -> ResponseEntity.ok().body(productReponse))
+					.orElseGet(() -> ResponseEntity.notFound().build());
+		} catch (Exception ex) {
+			LOGGER.error("findHospitalNearHospitalBy - Handling error with message: {}", ex.getMessage());
+			return ResponseEntity.badRequest().build();
+		}
+	 }
+	 
+	 @GetMapping(path = "/hospitaisProximosComVaga")
+	 public ResponseEntity<List<HospitalDTO>> findHospitalNearHospitalComVagasBy(@PathVariable String hospital_id) {
+		try {
+			List<HospitalDTO> locations = locationService.findHospitalNearHospitalBy(hospital_id, 100D);
+
+			locations.stream()
+					.filter(f -> f.getAvailableBeds() > 0 && f.getId() != hospital_id)
+					.findFirst()
+					.orElseThrow(() -> new ResourceNotFoundException("Nenhum hospital próximo com vagas encontrado!"));
+			
+			
 			return Optional.ofNullable(locations).map(productReponse -> ResponseEntity.ok().body(productReponse))
 					.orElseGet(() -> ResponseEntity.notFound().build());
 		} catch (Exception ex) {
